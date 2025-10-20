@@ -1,0 +1,137 @@
+# This is a Windows-only workflow that clones the public avm GitLab repo,
+# installs clang/cmake/git/python/yasm, ensures yasm is on PATH, and extracts
+# any .tar.gz files found inside the avm repo into their containing folders.
+
+name: CI
+
+on:
+  schedule:
+    # 每天北京时间8点运行（UTC时间0点）
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+
+    steps:
+      # Checkout this repository (if you still need files from this repo)
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      # Clone the public AVM repo (no token needed)
+      - name: Clone public AVM GitLab repo
+        shell: pwsh
+        run: |
+          # Clone into a subfolder 'avm'
+          git clone --depth 1 https://gitlab.com/AOMediaCodec/avm.git avm
+          Write-Host "Clone complete. Listing avm top-level:"
+          Get-ChildItem avm -Force
+
+      # Install required tools via Chocolatey
+      - name: Install build tools with Chocolatey
+        shell: pwsh
+        run: |
+          choco install -y llvm cmake git python3 yasm 7zip
+          # Wait up to ~30s for tools to appear in PATH if necessary
+          $tries = 0
+          while ($tries -lt 15 -and -not (Get-Command clang -ErrorAction SilentlyContinue)) {
+            Start-Sleep -Seconds 2
+            $tries++
+          }
+          Write-Host "Chocolatey install step finished."
+
+      # Ensure likely tool locations are on PATH for the remainder of the job
+      - name: Add common tool locations to PATH
+        shell: pwsh
+        run: |
+          $paths = @(
+            'C:\ProgramData\chocolatey\bin',
+            'C:\Program Files\LLVM\bin',
+            'C:\Program Files\CMake\bin'
+          )
+          foreach ($p in $paths) {
+            if (Test-Path $p) {
+              Add-Content -Path $env:GITHUB_PATH -Value $p
+              Write-Host "Added $p to PATH"
+            } else {
+              Write-Host "Not present: $p"
+            }
+          }
+
+      # Verify the installed tools (sanity check)
+      - name: Verify installed tools
+        shell: pwsh
+        run: |
+          Write-Host "clang: $(if (Get-Command clang -ErrorAction SilentlyContinue) { (clang --version | Select-Object -First 1) } else { 'clang not found' })"
+          Write-Host "cmake: $(if (Get-Command cmake -ErrorAction SilentlyContinue) { (cmake --version | Select-Object -First 1) } else { 'cmake not found' })"
+          Write-Host "python: $(if (Get-Command python -ErrorAction SilentlyContinue) { (python --version) } else { 'python not found' })"
+          Write-Host "git: $(git --version)"
+          Write-Host "yasm: $(if (Get-Command yasm -ErrorAction SilentlyContinue) { (yasm --version 2>&1 | Select-Object -First 1) } else { 'yasm not found' })"
+
+      # Extract every .tar.gz found under the avm repo into its containing folder
+      - name: Extract .tar.gz archives in avm
+        shell: pwsh
+        run: |
+          $repoDir = Join-Path $env:GITHUB_WORKSPACE 'avm'
+          if (-not (Test-Path $repoDir)) {
+            Write-Error "avm repo not found at $repoDir"
+            exit 1
+          }
+          Write-Host "Searching for .tar.gz files under $repoDir ..."
+          $archives = Get-ChildItem -Path $repoDir -Filter *.tar.gz -Recurse -File
+          if ($archives.Count -eq 0) {
+            Write-Host "No .tar.gz files found."
+            exit 0
+          }
+          foreach ($a in $archives) {
+            $file = $a.FullName
+            $targetDir = $a.DirectoryName
+            Write-Host "Processing: $file -> $targetDir"
+
+            # Try native tar first (tar -xzf)
+            try {
+              tar -xzf $file -C $targetDir
+              Write-Host "Extracted with tar: $file"
+              continue
+            } catch {
+              Write-Host "tar extraction failed for $file. Falling back to 7z method."
+            }
+
+            # Fallback: use 7z to extract gzip then tar (temporary dir used)
+            $tmp = Join-Path $env:TEMP ("avm_extract_{0}" -f ([guid]::NewGuid().ToString()))
+            New-Item -ItemType Directory -Path $tmp | Out-Null
+            try {
+              # Extract the .tar from .tar.gz into tmp
+              & 7z x $file -o$tmp -y | Out-Null
+              # Find the extracted .tar
+              $tarfile = Get-ChildItem -Path $tmp -Filter *.tar -Recurse -File | Select-Object -First 1
+              if ($null -eq $tarfile) {
+                throw "7z did not produce a .tar for $file"
+              }
+              # Extract the .tar into the target directory
+              & 7z x $tarfile.FullName -o$targetDir -y | Out-Null
+              Write-Host "Extracted with 7z fallback: $file"
+            } catch {
+              Write-Error "Failed to extract $file : $_"
+              throw
+            } finally {
+              # Clean up temp
+              Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Write-Host "All archives processed. Listing top-level of avm:"
+          Get-ChildItem -Path $repoDir -Force
+
+      # Placeholder: add your CMake / build commands here
+      - name: Configure and build (placeholder)
+        shell: pwsh
+        run: |
+          Write-Host "Add your cmake configure/build commands here. Example:"
+          Write-Host "cd avm"
+          cd avm
+          cmake .\
+          make
+          Write-Host "mkdir build; cd build"
+          Write-Host "cmake -G \"Ninja\" .."
+          Write-Host "cmake --build . --config Release"

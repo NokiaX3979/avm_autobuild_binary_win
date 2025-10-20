@@ -4,9 +4,11 @@
 
 name: Build
 
-# Need actions: write so the workflow can delete old runs using GITHUB_TOKEN
 permissions:
+  # Need to be able to delete workflow runs
   actions: write
+  # read access to repo contents (not strictly required here, but commonly useful)
+  contents: read
 
 on:
   schedule:
@@ -144,73 +146,73 @@ jobs:
           Write-Host "cmake --build . --config Release"
           
       # Final step: prune workflow runs older than 15 days (runs regardless of success/failure)
-      - name: Prune workflow runs older than 15 days
-        if: always()
-        shell: pwsh
-        run: |
+#      - name: Prune workflow runs older than 15 days
+ #       if: always()
+ #       shell: pwsh
+ #       run: |
           # This script uses the repository's GITHUB_TOKEN and requires permissions.actions: write (set above).
-          $repo = $env:GITHUB_REPOSITORY
-          $token = $env:GITHUB_TOKEN
-          $currentRunId = [int]$env:GITHUB_RUN_ID
-          $cutoff = (Get-Date).AddDays(-15)
-          if (-not $token) {
-            Write-Warning "GITHUB_TOKEN is not available; cannot prune runs."
-            exit 0
-          }
+ #         $repo = $env:GITHUB_REPOSITORY
+ #         $token = $env:GITHUB_TOKEN
+ #         $currentRunId = [int]$env:GITHUB_RUN_ID
+ #         $cutoff = (Get-Date).AddDays(-15)
+ #         if (-not $token) {
+ #           Write-Warning "GITHUB_TOKEN is not available; cannot prune runs."
+ #           exit 0
+ #         }
+#
+ #         Write-Host "Pruning workflow runs in $repo older than $($cutoff.ToString('u')) (skipping current run id $currentRunId)..."
+#
+#          $per_page = 100
+#          $page = 1
+#          while ($true) {
+#            $url = "https://api.github.com/repos/$repo/actions/runs?per_page=$per_page&page=$page"
+#            try {
+#              $resp = Invoke-RestMethod -Uri $url -Headers @{
+#                Authorization = "Bearer $token"
+#                Accept = "application/vnd.github.v3+json"
+#                'User-Agent' = 'github-actions/prune-script'
+#              } -Method Get
+#            } catch {
+#              Write-Error "Failed to list workflow runs: $_"
+#              break
+ #           }
+#
+#            $runs = $resp.workflow_runs
+#            if (-not $runs -or $runs.Count -eq 0) {
+#              break
+#            }
 
-          Write-Host "Pruning workflow runs in $repo older than $($cutoff.ToString('u')) (skipping current run id $currentRunId)..."
-
-          $per_page = 100
-          $page = 1
-          while ($true) {
-            $url = "https://api.github.com/repos/$repo/actions/runs?per_page=$per_page&page=$page"
-            try {
-              $resp = Invoke-RestMethod -Uri $url -Headers @{
-                Authorization = "Bearer $token"
-                Accept = "application/vnd.github.v3+json"
-                'User-Agent' = 'github-actions/prune-script'
-              } -Method Get
-            } catch {
-              Write-Error "Failed to list workflow runs: $_"
-              break
-            }
-
-            $runs = $resp.workflow_runs
-            if (-not $runs -or $runs.Count -eq 0) {
-              break
-            }
-
-            foreach ($r in $runs) {
-              try {
-                $created = [DateTime]::Parse($r.created_at)
-              } catch {
-                Write-Warning "Could not parse created_at for run id $($r.id), skipping."
-                continue
-              }
-              if ($created -lt $cutoff) {
-                $rid = [int]$r.id
-                if ($rid -eq $currentRunId) {
-                  Write-Host "Skipping current run $rid."
-                  continue
-                }
-                Write-Host "Deleting run $rid (created: $created, workflow: $($r.name), status: $($r.status))"
-                $delUrl = "https://api.github.com/repos/$repo/actions/runs/$rid"
-                try {
-                  Invoke-RestMethod -Uri $delUrl -Headers @{
-                    Authorization = "Bearer $token"
-                    Accept = "application/vnd.github.v3+json"
-                    'User-Agent' = 'github-actions/prune-script'
-                  } -Method Delete
-                  Write-Host "Deleted run $rid"
-                } catch {
-                  Write-Warning "Failed to delete run ${rid}: $_"
-                }
-              } else {
+#            foreach ($r in $runs) {
+#              try {
+#                $created = [DateTime]::Parse($r.created_at)
+#              } catch {
+#                Write-Warning "Could not parse created_at for run id $($r.id), skipping."
+#                continue
+#              }
+#              if ($created -lt $cutoff) {
+#                $rid = [int]$r.id
+#                if ($rid -eq $currentRunId) {
+#                  Write-Host "Skipping current run $rid."
+#                  continue
+#                }
+#                Write-Host "Deleting run $rid (created: $created, workflow: $($r.name), status: $($r.status))"
+#                $delUrl = "https://api.github.com/repos/$repo/actions/runs/$rid"
+#                try {
+#                  Invoke-RestMethod -Uri $delUrl -Headers @{
+#                    Authorization = "Bearer $token"
+#                    Accept = "application/vnd.github.v3+json"
+#                    'User-Agent' = 'github-actions/prune-script'
+#                  } -Method Delete
+#                  Write-Host "Deleted run $rid"
+#                } catch {
+#                  Write-Warning "Failed to delete run ${rid}: $_"
+#                }
+#              } else {
                 # runs are returned newest-first; if this run is newer than cutoff, subsequent ones on same page may still be older,
                 # so we continue checking all items on the page.
-                Write-Host "Keeping run $($r.id) created $created"
-              }
-            }
+#                Write-Host "Keeping run $($r.id) created $created"
+#              }
+#            }
 
             # If we received fewer than per_page runs, we're on the last page
             if ($runs.Count -lt $per_page) { break }

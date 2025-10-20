@@ -134,9 +134,9 @@ jobs:
           Write-Host "Add your cmake configure/build commands here. Example:"
           Write-Host "cd avm my script start"
           cd avm
-          cmake .\
           mkdir -p ..\aom_build
           cd ..\aom_build
+          cmake .\
           make
           Write-Host "mkdir build; cd build(end)"
           Write-Host "cmake -G \"Ninja\" .."

@@ -203,7 +203,7 @@ jobs:
                   } -Method Delete
                   Write-Host "Deleted run $rid"
                 } catch {
-                  Write-Warning "Failed to delete run $rid: $_"
+                  Write-Warning "Failed to delete run ${rid}: $_"
                 }
               } else {
                 # runs are returned newest-first; if this run is newer than cutoff, subsequent ones on same page may still be older,

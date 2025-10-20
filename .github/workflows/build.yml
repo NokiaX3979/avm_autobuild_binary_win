@@ -136,8 +136,8 @@ jobs:
           cd avm
           mkdir -p ..\aom_build
           cd ..\aom_build
-          cmake "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm 
-          make
+          cmake -G "Ninja" -S . -B build -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm 
+          ninja
           Write-Host "mkdir build; cd build(end)"
           Write-Host "cmake -G \"Ninja\" .."
           Write-Host "cmake --build . --config Release"

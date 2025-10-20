@@ -128,7 +128,7 @@ jobs:
           Get-ChildItem -Path $repoDir -Force
 
       # Placeholder: add your CMake / build commands here
-      - name: Configure and build (placeholder)
+      - name: Configure and build
         shell: pwsh
         run: |
           Write-Host "Add your cmake configure/build commands here. Example:"
@@ -136,7 +136,7 @@ jobs:
           cd avm
           mkdir -p ..\aom_build
           cd ..\aom_build
-          cmake D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm 
           make
           Write-Host "mkdir build; cd build(end)"
           Write-Host "cmake -G \"Ninja\" .."

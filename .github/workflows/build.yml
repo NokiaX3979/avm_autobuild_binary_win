@@ -215,8 +215,8 @@ jobs:
 #            }
 
             # If we received fewer than per_page runs, we're on the last page
-            if ($runs.Count -lt $per_page) { break }
-            $page++
-          }
+#            if ($runs.Count -lt $per_page) { break }
+#            $page++
+#          }
 
-          Write-Host "Prune step finished."
+#          Write-Host "Prune step finished."

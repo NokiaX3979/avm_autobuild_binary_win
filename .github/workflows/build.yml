@@ -228,7 +228,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path out -Force | Out-Null
           # Create a 7z archive (maximum compression). Adjust -mx=9 to change compression level.
-          & $seven a -t7z "out\build.7z" "dist\*" -mx=9
+          & $seven a -t7z "out\build.7z" "D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build/" -mx=9
           Write-Output "Created out\build.7z"
 
       - name: Upload 7z build artifact

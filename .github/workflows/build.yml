@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: |
           # Clone into a subfolder 'avm'
-          git clone --depth 1 https://gitlab.com/AOMediaCodec/avm.git avm
+          git clone https://gitlab.com/AOMediaCodec/avm.git avm
           Write-Host "Clone complete. Listing avm top-level:"
           Get-ChildItem avm -Force
 

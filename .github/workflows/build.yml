@@ -141,6 +141,7 @@ jobs:
           cd D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build
           ninja
           Write-Host "build end"
+          D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build/aomdec.exe --help
           
       # Final step: prune workflow runs older than 15 days (runs regardless of success/failure)
 #      - name: Prune workflow runs older than 15 days

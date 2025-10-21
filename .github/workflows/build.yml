@@ -133,17 +133,14 @@ jobs:
       - name: Configure and build
         shell: pwsh
         run: |
-          Write-Host "Add your cmake configure/build commands here. Example:"
-          Write-Host "cd avm my script start"
+          Write-Host "my script start"
           cd avm
           mkdir -p ..\aom_build
           cd ..\aom_build
-          cmake -G "Ninja" -S . -B build -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm 
+          cmake -G "Ninja" -S . -B build -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -Wno-dev  
           cd D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build
           ninja
-          Write-Host "mkdir build; cd build(end)"
-          Write-Host "cmake -G \"Ninja\" .."
-          Write-Host "cmake --build . --config Release"
+          Write-Host "build end"
           
       # Final step: prune workflow runs older than 15 days (runs regardless of success/failure)
 #      - name: Prune workflow runs older than 15 days
@@ -160,7 +157,7 @@ jobs:
  #           exit 0
  #         }
 #
- #         Write-Host "Pruning workflow runs in $repo older than $($cutoff.ToString('u')) (skipping current run id $currentRunId)..."
+#          Write-Host "Pruning workflow runs in $repo older than $($cutoff.ToString('u')) (skipping current run id $currentRunId)..."
 #
 #          $per_page = 100
 #          $page = 1
@@ -175,7 +172,7 @@ jobs:
 #            } catch {
 #              Write-Error "Failed to list workflow runs: $_"
 #              break
- #           }
+#            }
 #
 #            $runs = $resp.workflow_runs
 #            if (-not $runs -or $runs.Count -eq 0) {
@@ -220,3 +217,23 @@ jobs:
 #          }
 
 #          Write-Host "Prune step finished."
+
+      - name: Archive build output with 7-Zip
+        shell: powershell
+        run: |
+          $seven = "${env:ProgramFiles}\7-Zip\7z.exe"
+          if (-not (Test-Path $seven)) {
+            Write-Error "7z not found at $seven. On hosted windows-latest it should be installed by default."
+            exit 1
+          }
+          New-Item -ItemType Directory -Path out -Force | Out-Null
+          # Create a 7z archive (maximum compression). Adjust -mx=9 to change compression level.
+          & $seven a -t7z "out\build.7z" "dist\*" -mx=9
+          Write-Output "Created out\build.7z"
+
+      - name: Upload 7z build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-7z
+          path: out/build.7z
+          retention-days: 30

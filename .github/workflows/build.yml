@@ -38,7 +38,7 @@ jobs:
       - name: Install build tools with Chocolatey
         shell: pwsh
         run: |
-          choco install -y --limit-output cmake git python3 yasm 7zip llvm strawberryperl mingw
+          choco install -y --limit-output cmake git python3 yasm 7zip llvm strawberryperl
           # Wait up to ~30s for tools to appear in PATH if necessary
           $tries = 0
           while ($tries -lt 15 -and -not (Get-Command clang -ErrorAction SilentlyContinue)) {
@@ -137,9 +137,9 @@ jobs:
           cd avm
           mkdir -p ..\aom_build
           cd ..\aom_build
-          cmake -G "MinGW Makefiles" -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build/output -Wno-dev D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm
-          
-          make
+          cmake -G "Ninja" -S . -B build -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build/output -Wno-dev D:\a\avm_autobuild_binary_win\avm_autobuild_binary_win\avm
+          cd D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build
+          ninja
           Write-Host "build end"
           D:/a/avm_autobuild_binary_win/avm_autobuild_binary_win/aom_build/build/output/aomenc.exe --help
           
